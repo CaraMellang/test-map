@@ -90,9 +90,13 @@ function KaKaoMap({ toggle }) {
       // 마커에 클릭이벤트를 등록합니다
       function addININFOFO(data) {
         closeInfowindowArray.push(data);
+        console.log(closeInfowindowArray);
       }
-      function removeININFOFO() {
+      function removeININFOFO(infoWindow) {
         for (let i = 0; i < closeInfowindowArray.length; i++) {
+          if (infoWindow.n === closeInfowindowArray[i].n) {
+            return;
+          }
           closeInfowindowArray[i].close();
         }
       }
@@ -101,12 +105,11 @@ function KaKaoMap({ toggle }) {
       }
       window.kakao.maps.event.addListener(marker, "click", function () {
         // 마커를 클릭하면 장소명이 인포윈도우에 표출됩니다
-        removeININFOFO();
+        removeININFOFO(infoWindow);
+        console.log(infoWindow.getMap());
         if (infoWindow.getMap()) {
-          console.log("ggss");
           infoWindow.close();
         } else {
-          console.log("gg");
           infoWindow.open(map, marker);
         }
       });
