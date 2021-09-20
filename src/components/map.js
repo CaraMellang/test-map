@@ -12,25 +12,36 @@ function KaKaoMap({ toggle }) {
   const [menuList, setMenuList] = useState([]);
   const [paginationNumber, setPagination] = useState(1);
   let closeInfowindowArray = [];
+  const pageList = [
+    {
+      id: 1,
+    },
+    {
+      id: 2,
+    },
+    {
+      id: 3,
+    },
+  ];
 
   // const kakao = (window as any).kakao
 
   const onClickPagenation = (e) => {
     console.log(e.target.value);
-    setPagination(e.target.value);
+    setPagination(parseInt(e.target.value));
   };
 
   const markerContents = (place) => {
     // console.log(place);
     return `
-      <div style="padding:5px;font-size:12px;">
+      <div class="overlaybox">
         <div>${place.place_name}</div>
         <div>${place.road_address_name}</div>
       </div>
     `;
   };
 
-  let infowindow = new window.kakao.maps.InfoWindow({ zIndex: 1 });
+  // let infowindow = new window.kakao.maps.InfoWindow({ zIndex: 1 });
   const options = {
     //지도를 생성할 때 필요한 기본 옵션
     center: new window.kakao.maps.LatLng(37.561839718913, 126.955438711359), //지도의 중심좌표.
@@ -46,8 +57,6 @@ function KaKaoMap({ toggle }) {
     let ps = new window.kakao.maps.services.Places(); // 장소 검색 객체를 생성합니다
 
     function placesSearchCB(data, status) {
-      console.log(data);
-      console.log(paginationNumber);
       setMenuList([]); //페이지네이션 초기화
       // pagination.gotoPage(paginationNumber);
       if (status === window.kakao.maps.services.Status.OK) {
@@ -59,6 +68,7 @@ function KaKaoMap({ toggle }) {
               name: data[i].place_name,
               address: data[i].address_name,
               kakaoUrl: data[i].place_url,
+              id: data[i].id,
             },
           ]);
           displayMarker(data[i]);
@@ -68,7 +78,7 @@ function KaKaoMap({ toggle }) {
 
     // 키워드로 장소를 검색합니다
     // console.log(ps);
-    if (toggle === true) {
+    if (true) {
       ps.keywordSearch("백신 접종센터", placesSearchCB, searchOptions);
     }
 
@@ -90,28 +100,18 @@ function KaKaoMap({ toggle }) {
       // 마커에 클릭이벤트를 등록합니다
       function addININFOFO(data) {
         closeInfowindowArray.push(data);
-        console.log(closeInfowindowArray);
-      }
-      function removeININFOFO(infoWindow) {
-        for (let i = 0; i < closeInfowindowArray.length; i++) {
-          if (infoWindow.n === closeInfowindowArray[i].n) {
-            return;
-          }
-          closeInfowindowArray[i].close();
-        }
       }
       if (closeInfowindowArray.length < 15) {
         addININFOFO(infoWindow);
       }
-      window.kakao.maps.event.addListener(marker, "click", function () {
-        // 마커를 클릭하면 장소명이 인포윈도우에 표출됩니다
-        removeININFOFO(infoWindow);
-        console.log(infoWindow.getMap());
-        if (infoWindow.getMap()) {
-          infoWindow.close();
-        } else {
-          infoWindow.open(map, marker);
+      function removeININFOFO() {
+        for (let i = 0; i < closeInfowindowArray.length; i++) {
+          closeInfowindowArray[i].close();
         }
+      }
+      window.kakao.maps.event.addListener(marker, "click", function () {
+        removeININFOFO();
+        infoWindow.open(map, marker);
       });
     }
   }, [toggle, paginationNumber]);
@@ -121,7 +121,7 @@ function KaKaoMap({ toggle }) {
       <div
         className="map"
         style={{
-          width: "80%",
+          width: "70%",
           height: "80vh",
         }}
         ref={container}
@@ -137,15 +137,18 @@ function KaKaoMap({ toggle }) {
           ))}
         </div>
         <div className="pagination">
-          <button onClick={onClickPagenation} value={1}>
-            1
-          </button>
-          <button onClick={onClickPagenation} value={2}>
-            2
-          </button>
-          <button onClick={onClickPagenation} value={3}>
-            3
-          </button>
+          {pageList.map((item, index) => (
+            <button
+              key={index}
+              className={`page-button ${
+                paginationNumber === index + 1 && "pagination-active"
+              }`}
+              onClick={onClickPagenation}
+              value={index + 1}
+            >
+              {item.id}
+            </button>
+          ))}
         </div>
       </div>
     </MapWrap>
@@ -153,23 +156,40 @@ function KaKaoMap({ toggle }) {
 }
 
 const MapWrap = styled.div`
-  /* position: relative; */
+  position: relative;
   display: flex;
+  gap: 0.5rem;
   height: 80vh;
+  .map {
+    border: 1px solid none;
+    border-radius: 20px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgb(34 39 46 / 15%);
+  }
   .menu-wrap {
     /* position: absolute; */
     display: flex;
     flex-direction: column;
-    height: 95%;
-    width: 20%;
+    width: 30%;
     top: 0;
     right: 0;
     bottom: 0;
+    border: 1px solid none;
+    border-radius: 20px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgb(34 39 46 / 15%);
     z-index: 100;
-    padding: 2rem;
   }
   .menu-over {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
     overflow: auto;
+  }
+  .menu {
+    padding: 10px;
+    border: 1px solid none;
+    border-radius: 10px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgb(34 39 46 / 15%);
   }
   .menu-over::-webkit-scrollbar {
     width: 5px;
@@ -183,9 +203,31 @@ const MapWrap = styled.div`
     border-radius: 10px;
   }
   .pagination {
+    padding: 1rem;
     display: flex;
     justify-content: center;
     align-items: center;
+    gap: 0.5rem;
+  }
+  .page-button {
+    background-color: white;
+    border: 1px solid skyblue;
+    border-radius: 5px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgb(34 39 46 / 15%);
+  }
+  .pagination-active {
+    color: white;
+    background-color: skyblue;
+  }
+  .overlaybox {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
+    width: 200px;
+    height: 30px;
+    font-size: 5px;
   }
 `;
 
