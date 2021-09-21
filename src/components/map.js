@@ -6,6 +6,7 @@ import styled from "styled-components";
 //     kakao: any;
 //   }
 // }
+// const kakao = (window as any).kakao
 
 function KaKaoMap({ toggle }) {
   const container = useRef(null); //지도를 담을 영역의 DOM 레퍼런스
@@ -24,19 +25,33 @@ function KaKaoMap({ toggle }) {
     },
   ];
 
-  // const kakao = (window as any).kakao
-
   const onClickPagenation = (e) => {
     console.log(e.target.value);
     setPagination(parseInt(e.target.value));
+    window.scrollTo(0, 0);
   };
 
   const markerContents = (place) => {
     // console.log(place);
     return `
       <div class="overlaybox">
-        <div>${place.place_name}</div>
-        <div>${place.road_address_name}</div>
+        <div id="overlay-top">
+          <div class="overlay-title">${place.place_name}</div>
+         ${/*<div class="overlay-close">X</div> */ ""}
+        </div>
+        <div class="overlay-contents">
+          <div class="overlay-road-address">${
+            place.road_address_name ? place.road_address_name : "정보없음."
+          }</div>
+        </div>
+        <div class="overlay-bottom">
+          <a href=${
+            place.place_url
+          } class="overlay-info" target="_blank" rel="noreferrer">정보보기</a>
+          <a href=https://map.kakao.com/link/to/${
+            place.id
+          } class="overlay-link-to" target="_blank" rel="noreferrer">길찾기</a>
+        </div>
       </div>
     `;
   };
@@ -57,7 +72,8 @@ function KaKaoMap({ toggle }) {
     let ps = new window.kakao.maps.services.Places(); // 장소 검색 객체를 생성합니다
 
     function placesSearchCB(data, status) {
-      setMenuList([]); //페이지네이션 초기화
+      // console.log(data);
+      setMenuList([]); //페이지 메뉴 초기화
       // pagination.gotoPage(paginationNumber);
       if (status === window.kakao.maps.services.Status.OK) {
         // for (let s = 0; s < pagination.last; s++) {
@@ -89,30 +105,61 @@ function KaKaoMap({ toggle }) {
         map: map,
         position: new window.kakao.maps.LatLng(place.y, place.x),
       });
-
-      let infoWindow = new window.kakao.maps.InfoWindow({
-        map: map,
+      let customOverlay = new window.kakao.maps.CustomOverlay({
         position: new window.kakao.maps.LatLng(place.y, place.x),
         content: markerContents(place),
-        // removable: true,
+        xAnchor: 0.5,
+        yAnchor: 1.4,
       });
-      infoWindow.close();
-      // 마커에 클릭이벤트를 등록합니다
+      // console.log(customOverlay);
       function addININFOFO(data) {
         closeInfowindowArray.push(data);
       }
-      if (closeInfowindowArray.length < 15) {
-        addININFOFO(infoWindow);
-      }
-      function removeININFOFO() {
+      function removeININFOFO(customOverlay) {
         for (let i = 0; i < closeInfowindowArray.length; i++) {
-          closeInfowindowArray[i].close();
+          closeInfowindowArray[i].setMap(null);
         }
       }
+      if (closeInfowindowArray.length < 15) {
+        addININFOFO(customOverlay);
+      }
+      // dd.addEventListener("click", function () {
+      //   closeSetMap(customOverlay);
+      // });
+
       window.kakao.maps.event.addListener(marker, "click", function () {
-        removeININFOFO();
-        infoWindow.open(map, marker);
+        removeININFOFO(customOverlay);
+        // console.log(customOverlay);
+        if (customOverlay.getMap()) {
+          customOverlay.setMap(null);
+        } else {
+          customOverlay.setMap(map);
+        }
       });
+
+      // let infoWindow = new window.kakao.maps.InfoWindow({
+      //   map: map,
+      //   position: new window.kakao.maps.LatLng(place.y, place.x),
+      //   content: markerContents(place),
+      //   removable: true,
+      // });
+      // infoWindow.close();
+      // // 마커에 클릭이벤트를 등록합니다
+      // function addININFOFO(data) {
+      //   closeInfowindowArray.push(data);
+      // }
+      // if (closeInfowindowArray.length < 15) {
+      //   addININFOFO(infoWindow);
+      // }
+      // function removeININFOFO() {
+      //   for (let i = 0; i < closeInfowindowArray.length; i++) {
+      //     closeInfowindowArray[i].close();
+      //   }
+      // }
+      // window.kakao.maps.event.addListener(marker, "click", function () {
+      //   removeININFOFO();
+      //   infoWindow.open(map, marker);
+      // });
     }
   }, [toggle, paginationNumber]);
 
@@ -130,9 +177,26 @@ function KaKaoMap({ toggle }) {
         <div className="menu-over">
           {menuList.map((item, index) => (
             <div className="menu" key={index}>
-              <div>{item.name}</div>
-              <div>{item.address}</div>
-              <a href={item.kakaoUrl}>바로가기</a>
+              <div className="menu-title">{item.name}</div>
+              <div className="menu-address">({item.address})</div>
+              <div className="menu-item-bot">
+                <a
+                  className="menu-bot-item item-1"
+                  href={item.kakaoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  정보보기
+                </a>
+                <a
+                  className="menu-bot-item item-2"
+                  href={`https://map.kakao.com/link/to/${item.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  길찾기
+                </a>
+              </div>
             </div>
           ))}
         </div>
@@ -160,6 +224,16 @@ const MapWrap = styled.div`
   display: flex;
   gap: 0.5rem;
   height: 80vh;
+  a {
+    text-decoration: none;
+    display: block;
+  }
+  a:link {
+    color: black;
+  }
+  a:visited {
+    color: black;
+  }
   .map {
     border: 1px solid none;
     border-radius: 20px;
@@ -186,10 +260,47 @@ const MapWrap = styled.div`
     overflow: auto;
   }
   .menu {
-    padding: 10px;
     border: 1px solid none;
     border-radius: 10px;
     box-shadow: 0 0.15rem 1.75rem 0 rgb(34 39 46 / 15%);
+  }
+  .menu-title {
+    text-align: center;
+    background-color: #3a3e4a;
+    padding: 10px;
+    padding-bottom: 5px;
+    color: white;
+    border-right: 1px solid black;
+    border-radius: 10px 10px 0 0;
+  }
+  .menu-address {
+    text-align: center;
+    font-size: 14px;
+    background-color: #3a3e4a;
+    padding-bottom: 10px;
+    color: white;
+  }
+  .menu-item-bot {
+    display: flex;
+    text-align: center;
+    font-weight: bold;
+  }
+  .menu-bot-item {
+    background-color: #fae100;
+    width: 50%;
+    padding: 5px;
+    border: 1px solid none;
+    border-radius: 0 0 10px 10px;
+  }
+  .item-1 {
+    border: 1px solid none;
+    border-right: 1px solid #3a3e4a;
+    border-radius: 0 0 0 10px;
+  }
+  .item-2 {
+    border: 1px solid none;
+    border-left: 1px solid #3a3e4a;
+    border-radius: 0 0 10px 0;
   }
   .menu-over::-webkit-scrollbar {
     width: 5px;
@@ -211,23 +322,83 @@ const MapWrap = styled.div`
   }
   .page-button {
     background-color: white;
-    border: 1px solid skyblue;
+    border: 1px solid #3a3e4a;
     border-radius: 5px;
     box-shadow: 0 0.15rem 1.75rem 0 rgb(34 39 46 / 15%);
   }
   .pagination-active {
     color: white;
-    background-color: skyblue;
+    background-color: #3a3e4a;
   }
   .overlaybox {
     display: flex;
+    background-color: white;
     flex-direction: column;
     justify-content: center;
-    text-align: center;
+    font-size: 14px;
+    border: 1px solid none;
+    border-radius: 10px;
+    gap: 2px;
+  }
+  #overlay-top {
+    display: flex;
+    background-color: #3a3e4a;
     padding: 10px;
-    width: 200px;
-    height: 30px;
-    font-size: 5px;
+    color: white;
+    border: 1px solid none;
+    border-radius: 10px 10px 0 0;
+    gap: 10px;
+  }
+  .overlay-title {
+    /* background-color: #3a3e4a; */
+    padding: 10px;
+  }
+  .overlay-close {
+    background-color: #e1e1e1;
+    padding: 10px;
+    align-items: center;
+    padding-left: 15px;
+    padding-right: 15px;
+    color: black;
+    border: 1px solid none;
+    border-radius: 10px;
+  }
+  .overlay-contents {
+    text-align: center;
+    padding: 5px;
+  }
+  .overlay-road-address {
+    background-color: white;
+    padding: 10px;
+    color: black;
+    font-weight: bold;
+    border: 1px solid none;
+    border-radius: 5px;
+    box-shadow: 0 0.15rem 1.75rem 0 rgb(34 39 46 / 15%);
+  }
+  .overlay-bottom {
+    display: flex;
+    padding-top: 5px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-bottom: 5px;
+    gap: 10px;
+  }
+  .overlay-bottom > a {
+    width: 50%;
+    padding: 10px;
+    background-color: #fae100;
+    border: 1px solid none;
+    border-radius: 5px;
+    text-align: center;
+    text-decoration: none;
+    font-weight: bold;
+  }
+  .overlay-bottom > a:link {
+    color: black;
+  }
+  .overlay-bottom > a:visited {
+    color: black;
   }
 `;
 
